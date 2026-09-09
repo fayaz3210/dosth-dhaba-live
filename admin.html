@@ -227,7 +227,6 @@
             color: var(--red);
             border: 1.5px solid var(--red);
         }
-    <style>
         .sound-banner-active {
             background: rgba(46, 204, 113, 0.15) !important;
             color: #2ecc71 !important;
@@ -235,6 +234,7 @@
             cursor: default !important;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -285,10 +285,14 @@
     <div class="tab-panel" id="qrTab">
         <div style="background:var(--surface-card); border-radius:14px; padding:20px; text-align:center; border:1px solid #333;">
             <h3 style="color:var(--gold-bright); margin-bottom:6px;">DOSTH DHABA PUBLIC QR CODE</h3>
-            <p style="color:var(--subtext); font-size:0.85rem; margin-bottom:16px;">Customers scan this to open the digital menu & order.</p>
-            <div id="adminQrDisplay" style="background:#fff; padding:12px; border-radius:10px; display:inline-block; margin-bottom:14px;"></div>
-            <div id="adminQrUrlText" style="color:var(--gold); font-size:0.9rem; font-weight:700; word-break:break-all; margin-bottom:15px;"></div>
-            <p style="color:#aaa; font-size:0.8rem; margin-bottom:14px;">💡 Print this QR code or display it on restaurant tables / huts.</p>
+            <p style="color:var(--subtext); font-size:0.85rem; margin-bottom:16px;">Customers scan this with their phone camera to open the digital menu & order.</p>
+            <div id="adminQrDisplay" style="background:#fff; padding:14px; border-radius:12px; display:inline-block; margin-bottom:14px; min-width:220px; min-height:220px;"></div>
+            <div id="adminQrUrlText" style="color:var(--gold); font-size:0.95rem; font-weight:800; word-break:break-all; margin-bottom:15px;"></div>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:12px;">
+                <a id="btnOpenMenu" href="/" target="_blank" style="padding:10px 16px; background:var(--gold); color:#000; font-weight:800; border-radius:10px; text-decoration:none; font-size:0.85rem;">🔗 Open Customer Menu</a>
+                <a id="btnDownloadQr" href="#" download="dosth_dhaba_qr.png" style="padding:10px 16px; background:#333; color:#fff; font-weight:800; border-radius:10px; text-decoration:none; font-size:0.85rem;">📥 Download QR Image</a>
+            </div>
+            <p style="color:#aaa; font-size:0.8rem;">💡 Print this QR code or display it on tables & huts.</p>
         </div>
     </div>
 
@@ -362,12 +366,33 @@
 
         function renderPublicQr() {
             const hostUrl = window.location.origin;
-            document.getElementById('adminQrUrlText').innerText = hostUrl;
+            const urlText = document.getElementById('adminQrUrlText');
+            if (urlText) urlText.innerText = hostUrl;
+
+            const btnOpen = document.getElementById('btnOpenMenu');
+            if (btnOpen) btnOpen.href = hostUrl;
+
             const container = document.getElementById('adminQrDisplay');
+            if (!container) return;
             container.innerHTML = '';
-            const canvas = document.createElement('canvas');
-            container.appendChild(canvas);
-            QRCode.toCanvas(canvas, hostUrl, { width: 220, margin: 1 });
+
+            const fallbackImg = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(hostUrl)}`;
+            const btnDownload = document.getElementById('btnDownloadQr');
+            if (btnDownload) btnDownload.href = fallbackImg;
+
+            if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                const canvas = document.createElement('canvas');
+                container.appendChild(canvas);
+                QRCode.toCanvas(canvas, hostUrl, { width: 220, margin: 1 }, function(error) {
+                    if (error) {
+                        container.innerHTML = `<img src="${fallbackImg}" width="220" height="220" style="display:block; border-radius:8px;" alt="QR Code" />`;
+                    } else if (btnDownload) {
+                        btnDownload.href = canvas.toDataURL('image/png');
+                    }
+                });
+            } else {
+                container.innerHTML = `<img src="${fallbackImg}" width="220" height="220" style="display:block; border-radius:8px;" alt="QR Code" />`;
+            }
         }
 
         // Pleasant 3-tone chime for incoming orders
